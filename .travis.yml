@@ -1,15 +1,25 @@
-language: haskell
-ghc:
-  - 7.8
-install:
-  - make install
-  - make configure
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
+cache:
+  directories:
+    - $HOME/.stack
+
+before_install:
+  - mkdir -p ~/.local/bin
+  - export PATH=~/.local/bin:$PATH
+  - travis_retry curl -L https://github.com/commercialhaskell/stack/releases/download/v0.1.2.0/stack-0.1.2.0-x86_64-linux.gz | gunzip > ~/.local/bin/stack
+  - chmod a+x ~/.local/bin/stack
+  - stack --no-terminal --skip-ghc-check setup
+  - stack --no-terminal --skip-ghc-check build
+
 before_script:
   - git config --global user.email "example@example.com"
   - git config --global user.name "Travis CI"
+
 script:
-  - make bench
-  - make test
-after_script:
-  - cabal install hpc-coveralls
-  - .cabal-sandbox/bin/hpc-coveralls --exclude-dir=test-suite --exclude-dir=benchmark tests examples
+  - stack --no-terminal --skip-ghc-check test
