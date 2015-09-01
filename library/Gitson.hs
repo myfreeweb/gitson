@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe, FlexibleContexts, UnicodeSyntax #-}
+{-# LANGUAGE Safe, CPP, FlexibleContexts, UnicodeSyntax #-}
 
 -- | Gitson is a simple document store library for Git + JSON.
 module Gitson (
@@ -21,17 +21,18 @@ module Gitson (
 
 import           System.Directory
 import           System.Lock.FLock
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
+#endif
 import           Control.Exception (try, IOException)
 import           Control.Error.Util (hush)
 import           Control.Monad.Trans.Writer
 import           Control.Monad.Trans.Control
 import           Control.Monad.IO.Class
-import           Control.Monad (liftM)
 import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.List (find, isSuffixOf)
-import           Text.Printf (printf)
 import qualified Data.ByteString.Lazy as BL
+import           Text.Printf (printf)
 import           Gitson.Util
 import           Gitson.Json
 
@@ -127,19 +128,21 @@ listDocumentKeys collection = liftIO $ do
 
 -- | Lists entries in a collection.
 listEntries ∷ (MonadIO i, Functor i, FromJSON a) ⇒ FilePath → i [a]
-listEntries collection = liftIO $ do
+listEntries collection = do
   maybes ← mapM (readDocument collection) =<< listDocumentKeys collection
   return . fromMaybe [] $ sequence maybes
 
 -- | Reads a document from a collection by key.
 readDocument ∷ (MonadIO i, Functor i, FromJSON a) ⇒ FilePath → FileName → i (Maybe a)
-readDocument collection key = liftIO $ do
-  jsonString ← try (BL.readFile $ documentPath collection key) ∷ IO (Either IOException BL.ByteString)
-  return $ decode =<< hush jsonString
+readDocument collection key = do
+  j ← liftIO ((try (runResourceT $ sourceFile (documentPath collection key) $$ sinkParserEither json)) ∷ IO (Either IOException (Either ParseError Value)))
+  return $ case fromJSON <$> (hush =<< hush j) of
+             Just (Success a) → Just a
+             _ → Nothing
 
 readDocument' ∷ (MonadIO i, Functor i, FromJSON a) ⇒ FilePath → Maybe FileName → i (Maybe a)
-readDocument' collection key = liftIO $ case key of
-  Just key → readDocument collection key
+readDocument' collection key = case key of
+  Just key' → readDocument collection key'
   Nothing → return Nothing
 
 -- | Reads a document from a collection by numeric id (for example, key "00001-hello" has id 1).

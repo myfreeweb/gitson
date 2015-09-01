@@ -1,11 +1,13 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, CPP #-}
 
 -- | Various functions used inside Gitson.
 module Gitson.Util (module Gitson.Util) where
 
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 import           Control.Monad (void, filterM)
 import           Control.Monad.IO.Class
-import           Control.Applicative
 import           Data.List (isSuffixOf, isPrefixOf)
 import           Data.Maybe
 import           System.FilePath
