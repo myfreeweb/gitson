@@ -1,8 +1,10 @@
-{-# LANGUAGE Safe, CPP, FlexibleContexts, UnicodeSyntax #-}
+{-# LANGUAGE NoImplicitPrelude, CPP, FlexibleContexts, UnicodeSyntax #-}
 
 -- | Gitson is a simple document store library for Git + JSON.
 module Gitson (
   TransactionWriter
+, HasGitsonLock
+, getGitsonLock
 , createRepo
 , transaction
 , saveDocument
@@ -19,22 +21,29 @@ module Gitson (
 , documentNameFromId
 ) where
 
+import           Prelude.Compat
 import           System.Directory
 import           System.Lock.FLock
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
+import           System.IO.Unsafe
 import           Control.Exception (try, IOException)
 import           Control.Error.Util (hush)
 import           Control.Monad.Trans.Writer
 import           Control.Monad.Trans.Control
 import           Control.Monad.IO.Class
+import           Control.Concurrent.MVar.Lifted
 import           Data.Maybe (fromMaybe, mapMaybe)
 import           Data.List (find, isSuffixOf)
 import qualified Data.ByteString.Lazy as BL
+import           Data.Aeson (ToJSON, FromJSON, fromJSON, json, Result(..), Value)
+import           Data.Aeson.Encode.Pretty
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Conduit.Attoparsec (sinkParserEither, ParseError)
+import           Conduit (sourceFile, ($$), runResourceT)
 import           Text.Printf (printf)
 import           Gitson.Util
-import           Gitson.Json
+
+encode ∷ ToJSON a ⇒ a → ByteString
+encode = encodePretty' $ Config { confIndent = 2, confCompare = compare }
 
 -- | A transaction monad.
 type TransactionWriter = WriterT [IO ()]
@@ -62,10 +71,20 @@ createRepo path = do
   createDirectoryIfMissing True path
   insideDirectory path $ shell "git" ["init"]
 
+class HasGitsonLock m where
+  getGitsonLock ∷ m (MVar ())
+
+globalGitsonLock ∷ MVar ()
+globalGitsonLock = unsafePerformIO $ newMVar ()
+
+instance HasGitsonLock IO where
+  getGitsonLock = return globalGitsonLock
+
 -- | Executes a blocking transaction on a repository, committing the results to git.
-transaction ∷ (MonadIO i, Functor i, MonadBaseControl IO i) ⇒ FilePath → TransactionWriter i () → i ()
-transaction repoPath action =
-  insideDirectory repoPath $ do
+transaction ∷ (MonadIO i, Functor i, MonadBaseControl IO i, HasGitsonLock i) ⇒ FilePath → TransactionWriter i () → i ()
+transaction repoPath action = do
+  mlock ← getGitsonLock
+  withMVar mlock $ const $ insideDirectory repoPath $ do
     liftIO $ writeFile lockPath ""
     withLock lockPath Exclusive Block $ do
       writeActions ← execWriterT action
