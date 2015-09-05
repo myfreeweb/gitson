@@ -1,11 +1,9 @@
-{-# LANGUAGE Safe, CPP #-}
+{-# LANGUAGE NoImplicitPrelude, Safe #-}
 
 -- | Various functions used inside Gitson.
-module Gitson.Util (module Gitson.Util) where
+module Gitson.Util where
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
+import           Prelude.Compat
 import           Control.Monad (void, filterM)
 import           Control.Monad.IO.Class
 import           Data.List (isSuffixOf, isPrefixOf)
