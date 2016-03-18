@@ -19,6 +19,9 @@ module Gitson (
 , readDocumentByName
 , documentIdFromName
 , documentNameFromId
+, documentFullKey
+, findById
+, findByName
 ) where
 
 import           Prelude.Compat
