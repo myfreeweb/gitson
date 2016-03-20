@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, Safe #-}
+{-# LANGUAGE NoImplicitPrelude, FlexibleContexts, Safe #-}
 
 -- | Various functions used inside Gitson.
 module Gitson.Util where
@@ -6,6 +6,8 @@ module Gitson.Util where
 import           Prelude.Compat
 import           Control.Monad (void, filterM)
 import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Control
+import           Control.Exception.Lifted (bracket)
 import           Data.List (isSuffixOf, isPrefixOf)
 import           Data.Maybe
 import           System.FilePath
@@ -40,13 +42,10 @@ filterDirs = filterM doesDirectoryExist . filter (not . isPrefixOf ".")
 
 -- | Returns an IO action that switches the current directory to a given path,
 -- executes the given IO action and switches the current directory back.
-insideDirectory :: (MonadIO i) => FilePath -> i a -> i a
+insideDirectory :: (MonadIO i, MonadBaseControl IO i) => FilePath -> i a -> i a
 insideDirectory path action = do
   prevPath <- liftIO getCurrentDirectory
-  liftIO $ setCurrentDirectory path
-  result <- action
-  liftIO $ setCurrentDirectory prevPath
-  return result
+  liftBaseOp (bracket (setCurrentDirectory path) (\_ -> setCurrentDirectory prevPath)) (\_ -> action)
 
 -- | Returns the message of the last git commit in the repo where the current directory is located.
 lastCommitText :: IO String
