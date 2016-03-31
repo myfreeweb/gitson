@@ -95,7 +95,6 @@ transaction repoPath action = do
       liftIO $ sequence_ writeActions
       shell "git" ["add", "--all"]
       shell "git" ["commit", "-m", "Gitson transaction"]
-      shell "git" ["stash", "pop"]
 
 combineKey ∷ IdAndName → FileName
 combineKey (n, s) = printf "%06d-%s" n s
