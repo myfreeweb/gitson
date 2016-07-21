@@ -1,4 +1,6 @@
 flags: {}
 packages:
   - '.'
-resolver: lts-3.20
+resolver: lts-6.7
+extra-deps:
+  - aeson-pretty-0.8.1

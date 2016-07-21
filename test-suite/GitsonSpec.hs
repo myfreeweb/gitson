@@ -29,9 +29,9 @@ spec = before setup $ after cleanup $ do
           liftIO $ readFile "things/second-thing.json" `shouldThrow` anyIOException
         insideDirectory "tmp/repo" $ do
           first ← readFile "things/first-thing.json"
-          first `shouldBe` "{\n  \"val\": 1\n}"
+          first `shouldBe` "{\n  \"val\": 1.0\n}"
           second ← readFile "things/second-thing.json"
-          second `shouldBe` "{\n  \"val\": 2\n}"
+          second `shouldBe` "{\n  \"val\": 2.0\n}"
           commitMsg ← lastCommitText
           commitMsg `shouldBe` "Gitson transaction"
 
@@ -42,9 +42,9 @@ spec = before setup $ after cleanup $ do
           saveNextDocument "things" "world" Thing {val = 2}
         insideDirectory "tmp/repo" $ do
           first ← readFile "things/000001-hello.json"
-          first `shouldBe` "{\n  \"val\": 1\n}"
+          first `shouldBe` "{\n  \"val\": 1.0\n}"
           second ← readFile "things/000002-world.json"
-          second `shouldBe` "{\n  \"val\": 2\n}"
+          second `shouldBe` "{\n  \"val\": 2.0\n}"
 
     describe "saveDocumentById" $ do
       it "updates an entry by specified id" $ do
@@ -54,7 +54,7 @@ spec = before setup $ after cleanup $ do
           saveDocumentById "things" 4 Thing {val = 2}
         insideDirectory "tmp/repo" $ do
           second ← readFile "things/000004-second-thing.json"
-          second `shouldBe` "{\n  \"val\": 2\n}"
+          second `shouldBe` "{\n  \"val\": 2.0\n}"
 
     describe "saveDocumentByName" $ do
       it "updates an entry by specified name" $ do
@@ -64,7 +64,7 @@ spec = before setup $ after cleanup $ do
           saveDocumentByName "things" "second-thing" Thing {val = 2}
         insideDirectory "tmp/repo" $ do
           second ← readFile "things/000004-second-thing.json"
-          second `shouldBe` "{\n  \"val\": 2\n}"
+          second `shouldBe` "{\n  \"val\": 2.0\n}"
 
   describe "readDocument" $ do
     it "returns Just the document when reading an document by key" $ do

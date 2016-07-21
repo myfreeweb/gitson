@@ -46,7 +46,7 @@ import           Text.Printf (printf)
 import           Gitson.Util
 
 encode ∷ ToJSON a ⇒ a → ByteString
-encode = encodePretty' $ Config { confIndent = 2, confCompare = compare }
+encode = encodePretty' $ Config { confIndent = Spaces 2, confCompare = compare, confNumFormat = Generic }
 
 -- | A transaction monad.
 type TransactionWriter = WriterT [IO ()]
